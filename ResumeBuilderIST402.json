@@ -1,0 +1,313 @@
+{
+  "name": "ResumeBuilderIST402",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "resume-builder",
+        "responseMode": "responseNode",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS, GET"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        80,
+        -96
+      ],
+      "id": "f5262c68-dec7-4dca-b7e2-5d9ad614052b",
+      "name": "Webhook",
+      "webhookId": "512044d7-ff6c-46f7-89b2-518c3e575890"
+    },
+    {
+      "parameters": {
+        "operation": "copy",
+        "fileId": {
+          "__rl": true,
+          "value": "17m1z-WNciQqjQfwSBgsq5zQAAOdy2FJpMMK_Extoih8",
+          "mode": "id"
+        },
+        "name": "=Resume - {{ $json.fullName }} - {{ $now.format('yyyy-MM-dd') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        560,
+        -96
+      ],
+      "id": "3c354545-673d-4264-bdf3-6a818d2bffde",
+      "name": "Copy file",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "qEEjfgDtYoNBnAhO",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"success\": true,\n  \"message\": \"Resume created successfully!\",\n  \"documentId\": \"{{ $('Copy file').item.json.id }}\"\n}\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        1008,
+        -80
+      ],
+      "id": "d60427a3-94c1-43c9-b9a6-df5e8c187859",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ef02eeef-66cd-49aa-af5e-56f2a653fdef",
+              "name": "fullName",
+              "value": "={{ $json.body.personalInfo.fullName }}",
+              "type": "string"
+            },
+            {
+              "id": "2ba9a9bd-eb3f-47ee-b394-35fba95464f2",
+              "name": "email",
+              "value": "={{ $json.body.personalInfo.email }}",
+              "type": "string"
+            },
+            {
+              "id": "32593715-a8d6-4668-b634-0ff1885b1325",
+              "name": "phone",
+              "value": "={{ $json.body.personalInfo.phone }}",
+              "type": "string"
+            },
+            {
+              "id": "6c679bab-67ed-450c-8505-402f3f7bac65",
+              "name": "workExperience",
+              "value": "={{ $json.body.workExperience }}",
+              "type": "string"
+            },
+            {
+              "id": "60f3d0a1-1001-45f4-9948-f455e6ce3541",
+              "name": "education",
+              "value": "={{ $json.body.education }}",
+              "type": "string"
+            },
+            {
+              "id": "da498f11-192b-4662-868a-454ae74f65a4",
+              "name": "skills",
+              "value": "={{ $json.body.skills }}",
+              "type": "string"
+            },
+            {
+              "id": "507e9116-ec08-435e-8e8a-59d4c042775e",
+              "name": "address",
+              "value": "={{ $json.body.personalInfo.address }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        272,
+        -96
+      ],
+      "id": "2f494eca-89d4-4246-8b6a-f6c5e4876e3e",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ \"https://docs.googleapis.com/v1/documents/\" + $json.documentId + \":batchUpdate\" }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "requests",
+              "value": "={{ $json.requests  }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        832,
+        -80
+      ],
+      "id": "ac1a7190-a4b5-48e2-bdbd-ed9c14c6b505",
+      "name": "HTTP Request",
+      "credentials": {
+        "googleOAuth2Api": {
+          "id": "1fy8yqzDUztCBDKr",
+          "name": "Google account 2"
+        },
+        "googleDriveOAuth2Api": {
+          "id": "qEEjfgDtYoNBnAhO",
+          "name": "Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const formData = $('Edit Fields').item.json;\nconst documentId = $('Copy file').item.json.id;\n\n// Parse AI response safely\nlet aiResponse;\ntry {\n  // Access the OpenAI node output (adjust node name here if needed!)\n  let content = $('OpenAI').first().json.message.content;\n  \n  // Fix for possible extra whitespace and parse safely\n  content = content.trim();\n  aiResponse = JSON.parse(content);\n  \n  // If keys are missing, fallback to formData\n  if (!aiResponse.workExperience || !aiResponse.education || !aiResponse.skills) {\n    throw new Error('Missing AI keys');\n  }\n} catch (e) {\n  console.log('AI parsing failed or keys missing:', e);\n  aiResponse = {\n    workExperience: formData.workExperience,\n    education: formData.education,\n    skills: formData.skills\n  };\n}\n\nconst workExp = typeof aiResponse.workExperience === 'string' && aiResponse.workExperience.trim()\n  ? aiResponse.workExperience\n  : (formData.workExperience || \"Not provided\");\n  \nconst edu = typeof aiResponse.education === 'string' && aiResponse.education.trim()\n  ? aiResponse.education\n  : (formData.education || \"Not provided\");\n  \nconst skills = typeof aiResponse.skills === 'string' && aiResponse.skills.trim()\n  ? aiResponse.skills\n  : (formData.skills || \"Not provided\");\n\nreturn {\n  json: {\n    documentId: documentId,\n    requests: [\n      {\n        replaceAllText: {\n          containsText: { text: \"FULLNAME\", matchCase: true },\n          replaceText: formData.fullName || \"Not provided\"\n        }\n      },\n      {\n        replaceAllText: {\n          containsText: { text: \"EMAIL\", matchCase: true },\n          replaceText: formData.email || \"Not provided\"\n        }\n      },\n      {\n        replaceAllText: {\n          containsText: { text: \"PHONE\", matchCase: true },\n          replaceText: formData.phone || \"Not provided\"\n        }\n      },\n      {\n        replaceAllText: {\n          containsText: { text: \"ADDRESS\", matchCase: true },\n          replaceText: formData.address || \"Not provided\"\n        }\n      },\n      {\n        replaceAllText: {\n          containsText: { text: \"WORKEXPERIENCE\", matchCase: true },\n          replaceText: String(workExp)\n        }\n      },\n      {\n        replaceAllText: {\n          containsText: { text: \"EDUCATION\", matchCase: true },\n          replaceText: String(edu)\n        }\n      },\n      {\n        replaceAllText: {\n          containsText: { text: \"SKILLS\", matchCase: true },\n          replaceText: String(skills)\n        }\n      }\n    ]\n  }\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        688,
+        192
+      ],
+      "id": "fe06d2db-db9b-41ad-b446-2f028cfdc2ca",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-3.5-turbo",
+          "mode": "list",
+          "cachedResultName": "GPT-3.5-TURBO"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "You are a professional resume writer. Rewrite work experience, education, and skills to be more professional and achievement-focused. Always return valid JSON with exactly these keys: workExperience, education, skills",
+              "role": "system"
+            },
+            {
+              "content": "=Rewrite the following resume sections to be significantly more professional, concise, and achievement-driven.\nMake substantial changes and highlight measurable impact and results. \nReturn the improved versions as JSON with these keys only: workExperience, education, skills.\n\nWork Experience: {{ $json.workExperience }}\nEducation: {{ $json.education }}\nSkills: {{ $json.skills }}\n"
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 1000,
+          "temperature": 0.9
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        320,
+        192
+      ],
+      "id": "9866503a-768a-46b0-a7dc-b21acdd755c5",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "YNYa8DwC8p652WC4",
+          "name": "OpenAi account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Copy file": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Copy file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "60856146-f52f-4c0a-ac5e-7b7e3b4a0b2f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "dedcc7ad07a7ce28dca36f1e653b5e9d4e3b6df4a254311873fdbcc6cf669b1d"
+  },
+  "id": "nHPVEH8wzrl1Y3KP",
+  "tags": []
+}
